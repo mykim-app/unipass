@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>통관 진행 조회</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+:root{
+  --ink:#1d2b36; --sub:#5b6b78; --line:#d5dde3; --bg:#e9eef1; --panel:#ffffff;
+  --stamp:#1f4fa8; --ok:#1d7a4d; --wait:#b36b00; --err:#b3261e;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.6 "IBM Plex Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:28px 20px 60px}
+h1{font-size:26px;margin:0 0 4px;letter-spacing:-.5px}
+.lead{color:var(--sub);margin:0 0 22px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px 20px;margin-bottom:16px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+label{display:block;font-size:13px;color:var(--sub);margin-bottom:4px}
+input,select,textarea{font:inherit;color:inherit;border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:#fff}
+textarea{width:100%;min-height:92px;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--stamp);outline-offset:1px}
+button{font:inherit;border:0;border-radius:4px;padding:9px 18px;cursor:pointer;background:var(--stamp);color:#fff;font-weight:500}
+button.ghost{background:transparent;color:var(--stamp);border:1px solid var(--stamp)}
+button.small{padding:4px 10px;font-size:13px}
+.keybox{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.keybox input{flex:1;min-width:220px}
+.hint{font-size:13px;color:var(--sub);margin-top:6px}
+.card{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--stamp);border-radius:6px;padding:16px 20px;margin-bottom:14px}
+.card.done{border-left-color:var(--ok)} .card.error{border-left-color:var(--err)}
+.card-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline}
+.bl{font-size:18px;font-weight:700;letter-spacing:.3px}
+.item{color:var(--sub)}
+.status{font-weight:700;color:var(--wait)} .done .status{color:var(--ok)} .error .status{color:var(--err)}
+.track{display:flex;margin:16px 0 6px;counter-reset:s}
+.step{flex:1;position:relative;text-align:center;font-size:12.5px;color:#9aa7b1;padding-top:22px}
+.step::before{content:"";position:absolute;top:6px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#cfd8de;z-index:1}
+.step::after{content:"";position:absolute;top:11px;left:-50%;width:100%;height:2px;background:#cfd8de}
+.step:first-child::after{display:none}
+.step.on{color:var(--ink);font-weight:500}
+.step.on::before{background:var(--stamp)} .step.on::after{background:var(--stamp)}
+.done .step.on::before,.done .step.on::after{background:var(--ok)}
+.meta{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 18px;margin:12px 0 4px;font-size:14px}
+.meta span{color:var(--sub);margin-right:6px}
+details{margin-top:8px} summary{cursor:pointer;color:var(--stamp);font-size:14px}
+.tbl{overflow-x:auto} table{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:8px}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;white-space:nowrap}
+th{color:var(--sub);font-weight:500}
+.empty{color:var(--sub);text-align:center;padding:30px 0}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin:22px 0 10px}
+.toolbar h2{font-size:17px;margin:0}
+@media (max-width:600px){.step{font-size:11px}.bl{font-size:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>통관 진행 조회</h1>
+  <p class="lead">운송장(B/L) 번호를 넣으면 관세청 유니패스 기준 통관 단계를 보여줍니다.</p>
+
+  <div class="panel">
+    <label for="nos">조회할 번호 (한 줄에 하나씩, 여러 건 가능)</label>
+    <textarea id="nos" placeholder="예) 6012345678901&#10;    KR1234567890"></textarea>
+    <div class="row" style="margin-top:10px">
+      <div><label for="kind">번호 종류</label>
+        <select id="kind">
+          <option value="hblNo">House B/L (택배 운송장)</option>
+          <option value="mblNo">Master B/L</option>
+          <option value="cargMtNo">화물관리번호</option>
+        </select></div>
+      <div><label for="year">B/L 연도</label><input id="year" type="number" style="width:100px"></div>
+      <div style="margin-left:auto"><button id="go">조회하기</button></div>
+    </div>
+    <div class="hint">해외직구 택배는 보통 쇼핑몰·배송대행지에서 받은 운송장 번호가 House B/L입니다.</div>
+  </div>
+
+  <div class="toolbar">
+    <h2>조회 결과</h2>
+    <div>
+      <button class="ghost small" id="refresh">저장된 번호 다시 조회</button>
+      <button class="ghost small" id="clear">목록 비우기</button>
+    </div>
+  </div>
+  <div id="results"><div class="empty">아직 조회한 번호가 없습니다. 위에 번호를 넣고 조회하세요.</div></div>
+</div>
+
+<script>
+// ▼ Supabase 함수 주소 (배포 후 본인 프로젝트 주소로 바꾸세요)
+const FUNCTION_URL = "https://YOUR-PROJECT-REF.supabase.co/functions/v1/unipass";
+const $ = s => document.querySelector(s);
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+const STEPS = [
+  {name:"입항",   keys:["입항"]},
+  {name:"하선·하기", keys:["하선","하기"]},
+  {name:"반입",   keys:["반입"]},
+  {name:"수입신고", keys:["수입신고","신고"]},
+  {name:"신고수리", keys:["수리"]},
+  {name:"반출",   keys:["반출"]}
+];
+const LABELS = {
+  prnm:"품명", csclPrgsStts:"통관진행상태", prgsStts:"진행상태", cargMtNo:"화물관리번호",
+  mblNo:"Master B/L", hblNo:"House B/L", etprDt:"입항일", etprCstm:"입항세관",
+  shipNm:"선박·항공편", shcoFlco:"선사·항공사", ldprNm:"적재항", dsprNm:"양륙항",
+  pckGcnt:"포장개수", ttwg:"총중량", frwrEntsConm:"포워더", cargTp:"화물구분", prcsDttm:"최종처리일시"
+};
+
+$("#year").value = new Date().getFullYear();
+
+function fmtDt(s){
+  if(!s) return "";
+  s = String(s);
+  if (s.length >= 12) return `${s.slice(0,4)}.${s.slice(4,6)}.${s.slice(6,8)} ${s.slice(8,10)}:${s.slice(10,12)}`;
+  if (s.length === 8) return `${s.slice(0,4)}.${s.slice(4,6)}.${s.slice(6,8)}`;
+  return s;
+}
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function stageIndex(details, summary){
+  const texts = details.map(d => d.cargTrcnRelaBsopTpcd || d.rlbrCn || "").join(" ")
+              + " " + (summary.csclPrgsStts || "") + " " + (summary.prgsStts || "");
+  let idx = -1;
+  STEPS.forEach((st, i) => { if (st.keys.some(k => texts.includes(k))) idx = i; });
+  return idx;
+}
+
+function renderCard(entry){
+  const {no, kind, year, data, error} = entry;
+  if (error) {
+    return `<div class="card error"><div class="card-head"><div class="bl">${esc(no)}</div>
+      <div class="status">조회 실패</div></div><div class="item">${esc(error)}</div></div>`;
+  }
+  if (!data.summaries.length) {
+    const msg = data.notice || "해당 번호로 조회된 화물이 없습니다. 번호 종류와 연도를 확인하세요.";
+    return `<div class="card error"><div class="card-head"><div class="bl">${esc(no)}</div>
+      <div class="status">결과 없음</div></div><div class="item">${esc(msg)}</div></div>`;
+  }
+  return data.summaries.map(s => {
+    const st = s.csclPrgsStts || s.prgsStts || "확인 중";
+    const idx = stageIndex(data.details, s);
+    const done = idx >= 5 || /반출/.test(st);
+    const track = STEPS.map((x,i) => `<div class="step ${i<=idx?"on":""}">${x.name}</div>`).join("");
+    const meta = Object.keys(LABELS).filter(k => s[k] && !["prnm","csclPrgsStts","prgsStts"].includes(k))
+      .map(k => {
+        let v = s[k];
+        if (k==="etprDt"||k==="prcsDttm") v = fmtDt(v);
+        if (k==="pckGcnt" && s.pckUt) v += " " + s.pckUt;
+        if (k==="ttwg" && s.wghtUt) v += " " + s.wghtUt;
+        return `<div><span>${LABELS[k]}</span>${esc(v)}</div>`;
+      }).join("");
+    const rows = data.details.map(d => `<tr>
+        <td>${esc(fmtDt(d.prcsDttm))}</td><td>${esc(d.cargTrcnRelaBsopTpcd)}</td>
+        <td>${esc(d.shedNm)}</td><td>${esc(d.rlbrCn)}</td>
+        <td>${esc(d.pckGcnt)} ${esc(d.pckUt)}</td><td>${esc(d.wght)} ${esc(d.wghtUt)}</td></tr>`).join("");
+    return `<div class="card ${done?"done":""}">
+      <div class="card-head"><div><div class="bl">${esc(no)}</div><div class="item">${esc(s.prnm||"품명 정보 없음")}</div></div>
+      <div class="status">${esc(st)}</div></div>
+      <div class="track">${track}</div>
+      <div class="meta">${meta}</div>
+      ${rows ? `<details><summary>처리 이력 ${data.details.length}건 보기</summary>
+        <div class="tbl"><table><thead><tr><th>처리일시</th><th>처리구분</th><th>장치장</th><th>내용</th><th>개수</th><th>중량</th></tr></thead>
+        <tbody>${rows}</tbody></table></div></details>` : ""}
+    </div>`;
+  }).join("");
+}
+
+let entries = [];
+function render(){
+  $("#results").innerHTML = entries.length
+    ? entries.map(renderCard).join("")
+    : `<div class="empty">아직 조회한 번호가 없습니다. 위에 번호를 넣고 조회하세요.</div>`;
+}
+
+async function fetchOne(no, kind, year){
+  const q = new URLSearchParams({no, kind, year, forceFunctionRegion: "ap-northeast-2"});
+  try{
+    const r = await fetch(FUNCTION_URL + "?" + q);
+    const j = await r.json();
+    return j.error ? {no, kind, year, error:j.error} : {no, kind, year, data:j};
+  }catch(e){ return {no, kind, year, error:"조회 서버에 연결하지 못했습니다. 잠시 후 다시 시도하세요."}; }
+}
+
+async function run(list){
+  if (!list.length) return;
+  $("#results").innerHTML = `<div class="empty">${list.length}건 조회 중…</div>`;
+  entries = await Promise.all(list.map(x => fetchOne(x.no, x.kind, x.year)));
+  store.set("saved", list);
+  render();
+}
+
+$("#go").onclick = () => {
+  const kind = $("#kind").value, year = $("#year").value;
+  const nos = [...new Set($("#nos").value.split(/\s+/).map(s => s.trim()).filter(Boolean))];
+  if (!nos.length) { $("#nos").focus(); return; }
+  const saved = store.get("saved", []).filter(x => !nos.includes(x.no));
+  run([...nos.map(no => ({no, kind, year})), ...saved]);
+};
+$("#refresh").onclick = () => run(store.get("saved", []));
+$("#clear").onclick = () => { store.set("saved", []); entries = []; render(); };
+if (store.get("saved", []).length) run(store.get("saved", []));
+</script>
+</body>
+</html>
