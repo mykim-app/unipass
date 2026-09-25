@@ -1,6 +1,6 @@
 # 통관 진행 조회 (GitHub Pages + Supabase)
 
-- 화면 주소: https://mykim-app.github.io/customs-tracker/
+- 화면 주소: https://mykim-app.github.io/unipass/
 - 구조: 브라우저 → GitHub Pages(index.html) → Supabase 함수 unipass(서울 리전) → 관세청 유니패스 API
 - 허용 주소(ALLOWED_ORIGIN): https://mykim-app.github.io (함수 코드에 기본값으로 들어 있음)
 
@@ -31,12 +31,12 @@ CLI를 쓸 경우:
 
 ## 4. GitHub Pages 게시
 1. index.html 의 FUNCTION_URL 을 https://<REF>.supabase.co/functions/v1/unipass 로 수정
-2. GitHub에서 mykim-app/customs-tracker 저장소 생성(Public) → index.html 업로드
+2. GitHub에서 mykim-app/unipass 저장소(Public)에 index.html 업로드
    (supabase 폴더와 README.md는 올려도 되고 안 올려도 됨. 인증키는 들어 있지 않음)
 3. Settings → Pages → Deploy from a branch → main / (root) → Save
-4. 1~2분 뒤 https://mykim-app.github.io/customs-tracker/ 접속
+4. 1~2분 뒤 https://mykim-app.github.io/unipass/ 접속
 
 ## 참고
-- ALLOWED_ORIGIN 은 도메인까지만 적습니다. /customs-tracker/ 같은 경로를 붙이면 차단됩니다.
+- ALLOWED_ORIGIN 은 도메인까지만 적습니다. /unipass/ 같은 경로를 붙이면 차단됩니다.
 - 주소창 직접 호출(점검용)은 허용됩니다. 다른 사이트 페이지에서의 호출만 막습니다.
 - 조회 건수는 본인 인증키 사용량으로 잡힙니다.
