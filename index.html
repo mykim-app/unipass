@@ -60,6 +60,17 @@ th{color:var(--sub);font-weight:500}
   <p class="lead">운송장(B/L) 번호를 넣으면 관세청 유니패스 기준 통관 단계를 보여줍니다.</p>
 
   <div class="panel">
+    <label for="pcc">개인통관고유부호로 내 직구 물품 전체 보기</label>
+    <div class="keybox">
+      <input id="pcc" placeholder="P로 시작하는 13자리 (예: P123456789012)" maxlength="13" autocomplete="off">
+      <button id="pccGo">부호 복사 후 유니패스 열기</button>
+    </div>
+    <div class="hint" id="pccHint">관세청 정책상 부호만으로는 목록을 불러올 수 없어, 유니패스에서 본인인증(간편인증 등) 후 조회합니다.
+      부호는 자동으로 복사되니 유니패스 화면의 해외직구 조회 칸에 붙여 넣으세요.</div>
+    <label style="margin-top:8px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="pccSave"> 이 기기에 부호 기억하기 (공용 PC에서는 체크하지 마세요)</label>
+  </div>
+
+  <div class="panel">
     <label for="nos">조회할 번호 (한 줄에 하나씩, 여러 건 가능)</label>
     <textarea id="nos" placeholder="예) 6012345678901&#10;    KR1234567890"></textarea>
     <div class="row" style="margin-top:10px">
@@ -166,6 +177,27 @@ function renderCard(entry){
     </div>`;
   }).join("");
 }
+
+// ── 개인통관고유부호: 복사 후 유니패스 해외직구 조회 화면 열기 ──
+const UNIPASS_PERSONAL_URL = "https://unipass.customs.go.kr/csp/index.do?tgMenuId=MYC_MNU_00000450";
+const savedPcc = store.get("pcc", "");
+if (savedPcc) { $("#pcc").value = savedPcc; $("#pccSave").checked = true; }
+$("#pccSave").onchange = () => { if (!$("#pccSave").checked) store.set("pcc", ""); };
+$("#pccGo").onclick = async () => {
+  const v = $("#pcc").value.trim().toUpperCase();
+  if (!/^P\d{12}$/.test(v)) {
+    $("#pccHint").textContent = "부호 형식을 확인하세요. P와 숫자 12자리, 모두 13자리입니다.";
+    $("#pcc").focus(); return;
+  }
+  $("#pcc").value = v;
+  store.set("pcc", $("#pccSave").checked ? v : "");
+  let copied = false;
+  try { await navigator.clipboard.writeText(v); copied = true; } catch(e) {}
+  window.open(UNIPASS_PERSONAL_URL, "_blank", "noopener");
+  $("#pccHint").textContent = copied
+    ? "부호를 복사했습니다. 새 창의 유니패스에서 해외직구 조회 칸에 붙여 넣고 본인인증하세요."
+    : "새 창에서 유니패스를 열었습니다. 해외직구 조회 칸에 부호 " + v + " 를 입력하고 본인인증하세요.";
+};
 
 let entries = [];
 function render(){
